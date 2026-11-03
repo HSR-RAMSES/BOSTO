@@ -4,28 +4,49 @@ import json
 from datetime import datetime
 from PIL import Image
 
-st.set_page_config(page_title="BOSTO", page_icon=":camera:", layout="wide")
+st.set_page_config(page_title="BOSTO", layout="wide")
 
-UPLOAD_FOLDER = "fotos"
-DATA_FILE = "datos.json"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w") as f:
+os.makedirs("fotos", exist_ok=True)
+if not os.path.exists("datos.json"):
+    with open("datos.json", "w") as f:
         json.dump({}, f)
 
-def cargar_datos():
-    with open(DATA_FILE, "r") as f:
+def cargar():
+    with open("datos.json", "r") as f:
         return json.load(f)
-def guardar_datos(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
 
-datos = cargar_datos()
+def guardar(d):
+    with open("datos.json", "w") as f:
+        json.dump(d, f)
 
+datos = cargar()
 st.title("BOSTO - Galeria Social")
-st.write("Sube fotos, dale like y mira las vistas")
 
-# --- AQUI ESTA EL BOTON VISIBLE ---
-st.divider()
-st.subheader("Subir foto desde tu celular")
-uploaded_file = st.file_uploader("Elige de tu almacenamiento", type=["jpg","jpeg","png","webp","mp
+st.subheader("Subir foto desde tu almacenamiento")
+uploaded = st.file_uploader("Toca aqui y elige de tu galeria")
+nombre = st.text_input("Tu nombre")
+
+if st.button("Publicar foto"):
+    if uploaded:
+        fname = datetime.now().strftime("%H%M%S_") + uploaded.name
+        with open(os.path.join("fotos", fname), "wb") as out:
+            out.write(uploaded.getbuffer())
+        datos[fname] = {"likes":0,"views":0,"uploader":nombre,"fecha":datetime.now().strftime("%d/%m %H:%M")}
+        guardar(datos)
+        st.success("Subida!")
+        st.rerun()
+
+if not datos:
+    st.info("Aun no hay fotos")
+else:
+    for fname, info in datos.items():
+        path = os.path.join("fotos", fname)
+        if not os.path.exists(path):
+            continue
+        st.image(Image.open(path), use_container_width=True)
+        st.write(f"Por {info['uploader']} - Vistas {info['views']} - Likes {info['likes']}")
+        if st.button("Dar like", key=fname):
+            datos[fname]["likes"] += 1
+            datos[fname]["views"] += 1
+            guardar(datos)
+            st.rerun()
