@@ -1,46 +1,47 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sube tus fotos</title>
-<style>
-  body { font-family: sans-serif; background: #f2f2f2; padding: 20px; text-align: center; }
-  h1 { color: #333; }
-  .subir { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px #0001; }
-  input { margin: 15px 0; }
-  #galeria { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-  #galeria img { width: 100%; border-radius: 10px; }
-  button { background: #25D366; color: white; border: none; padding: 12px 20px; border-radius: 10px; font-size: 16px; }
-</style>
-</head>
-<body>
-  <h1>📸 Mi Galería</h1>
-  <div class="subir">
-    <p>Selecciona fotos de tu celular</p>
-    <input type="file" id="inputFotos" accept="image/*" multiple>
-    <br>
-    <button onclick="document.getElementById('inputFotos').click()">Subir Fotos</button>
-  </div>
+import streamlit as st
+import os
+import json
+from datetime import datetime
+from PIL import Image
 
-  <div id="galeria"></div>
+st.set_page_config(page_title="BOSTO", page_icon="📸", layout="wide")
 
-<script>
-  const input = document.getElementById('inputFotos');
-  const galeria = document.getElementById('galeria');
-  
-  input.addEventListener('change', () => {
-    for (let file of input.files) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        galeria.prepend(img);
-      }
-      reader.readAsDataURL(file);
-    }
-  });
-</script>
-</body>
-</html>
+# --- Carpetas y datos ---
+UPLOAD_FOLDER = "fotos"
+DATA_FILE = "datos.json"
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+if not os.path.exists(DATA_FILE):
+    with open(DATA_FILE, "w") as f:
+        json.dump({}, f)
+
+def cargar_datos():
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+def guardar_datos(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
+
+datos = cargar_datos()
+
+st.title("📸 BOSTO - Galería Social")
+st.write("Sube fotos, dale like y mira las vistas")
+
+# --- Subir foto ---
+with st.sidebar:
+    st.header("Subir nueva foto")
+    uploaded_file = st.file_uploader("Elige una foto", type=["jpg","jpeg","png","webp"])
+    nombre = st.text_input("Tu nombre (opcional)")
+    if st.button("Publicar foto"):
+        if uploaded_file:
+            filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded_file.name}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            with open(filepath, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            datos[filename] = {
+                "likes": 0,
+                "views": 0,
+                "
